@@ -1,9 +1,25 @@
 use std::collections::BTreeMap;
 
-use arrow2::array::Array as ArrowArray;
+use arrow2::{
+    array::{
+        Array as ArrowArray, ListArray as ArrowListArray, PrimitiveArray as ArrowPrimitiveArray,
+    },
+    chunk::Chunk as ArrowChunk,
+    datatypes::{
+        DataType as ArrowDatatype, Field as ArrowField, Metadata as ArrowMetadata,
+        Schema as ArrowSchema, TimeUnit as ArrowTimeUnit,
+    },
+};
 
 use re_log_types::{EntityPath, ResolvedTimeRange, RowId, TimeInt, TimePoint, Timeline};
 use re_types_core::{ComponentName, SerializationError};
+
+// TODO: we're going to need a chunk iterator for sure, where the cost of downcasting etc is only
+// paid when creating the iterator itself.
+
+// TODO: would be nice to offer a helper to merge N chunks into a pure arrow chunk, that doesnt
+// need to respect the usual split conditions (e.g. to print a giant dataframe of the entire
+// store).
 
 // ---
 
@@ -25,6 +41,8 @@ pub type ChunkResult<T> = Result<T, ChunkError>;
 
 // ---
 
+// TODO: the store ID should be in the metadata here so we can remove the layer on top
+
 /// Unique identifier for a [`Chunk`], using a [`re_tuid::Tuid`].
 pub type ChunkId = re_tuid::Tuid;
 
@@ -37,15 +55,17 @@ pub type ChunkId = re_tuid::Tuid;
 ///
 /// This is the in-memory representation of a chunk, optimized for efficient manipulation of the
 /// data within. For transport, see [`crate::TransportChunk`] instead.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Chunk {
     pub(crate) id: ChunkId,
+
     pub(crate) entity_path: EntityPath,
 
     /// Is the chunk as a whole sorted by [`RowId`]?
     pub(crate) is_sorted: bool,
 
     /// The respective [`RowId`]s for each row of data.
+    // TODO: get rid of deser?
     pub(crate) row_ids: Vec<RowId>,
 
     /// The time columns.
@@ -60,22 +80,23 @@ pub struct Chunk {
     /// Each `ListArray` must be the same length as `row_ids`.
     ///
     /// Sparse so that we can e.g. log a `Position` at one timestamp but not a `Color`.
-    pub(crate) components: BTreeMap<ComponentName, Box<dyn ArrowArray>>,
+    // TODO: well these should be listarrays then
+    pub(crate) components: BTreeMap<ComponentName, ArrowListArray<i32>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+// ---
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct ChunkTimeline {
+    pub(crate) timeline: Timeline,
+
     /// Every single timestamp for this timeline.
     ///
     /// * This might or might not be sorted, depending on how the data was logged.
     /// * This is guaranteed to always be dense, because chunks are split anytime a timeline is
     ///   added or removed.
-    /// * This can never contain `TimeInt::STATIC`, since static data doesn't even have timelines.
-    //
-    // TODO(cmc): maybe this would be better as raw i64s so getting time columns in and out of
-    // chunks is just a blind memcpy… it's probably not worth the hassle for now though.
-    // We'll see how things evolve as we start putting chunks in the backend.
-    pub(crate) times: Vec<TimeInt>,
+    /// * This cannot ever contain `TimeInt::STATIC`, since static data doesn't even have timelines.
+    pub(crate) times: ArrowPrimitiveArray<i64>,
 
     /// Is [`Self::times`] sorted?
     ///
@@ -89,63 +110,74 @@ pub struct ChunkTimeline {
     pub(crate) time_range: ResolvedTimeRange,
 }
 
-impl Default for ChunkTimeline {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            times: Default::default(),
-            is_sorted: true,
-            time_range: ResolvedTimeRange::EMPTY,
-        }
-    }
-}
-
-#[cfg(test)] // do not ever use this outside internal testing, it's extremely slow and hackish
-impl PartialEq for Chunk {
-    #[inline]
-    fn eq(&self, rhs: &Self) -> bool {
-        let Self {
-            id: _, // we're comparing the contents
-            entity_path,
-            is_sorted,
-            row_ids,
-            timelines,
-            components,
-        } = self;
-
-        use itertools::Itertools as _;
-
-        *entity_path == rhs.entity_path
-            && *is_sorted == rhs.is_sorted
-            && *row_ids == rhs.row_ids
-            && *timelines == rhs.timelines
-            && components.keys().collect_vec() == rhs.components.keys().collect_vec()
-            && components.iter().all(|(component_name, list_array)| {
-                let Some(rhs_list_array) = rhs
-                    .components
-                    .get(component_name)
-                    .map(|list_array| &**list_array)
-                else {
-                    return false;
-                };
-
-                // `arrow2::compute::comparison` has very limited support for the different arrow
-                // types, so we just do our best here.
-                // This is just a testing/debugging tool.
-                if arrow2::compute::comparison::can_eq(list_array.data_type()) {
-                    arrow2::compute::comparison::eq(&**list_array, rhs_list_array)
-                        .values_iter()
-                        .all(|v| v)
-                } else {
-                    list_array.data_type() == rhs_list_array.data_type()
-                        && list_array.len() == rhs_list_array.len()
-                }
-            })
-    }
-}
-
-#[cfg(test)] // do not ever use this outside internal testing, it's extremely slow and hackish
-impl Eq for Chunk {}
+// TODO
+// #[cfg(test)] // do not ever use this outside internal testing, it's extremely slow and hackish
+// impl PartialEq for Chunk {
+//     #[inline]
+//     fn eq(&self, rhs: &Self) -> bool {
+//         let Self {
+//             id: _, // we're comparing the contents
+//             entity_path,
+//             is_sorted,
+//             row_ids,
+//             timelines,
+//             components,
+//         } = self;
+//
+//         use itertools::Itertools as _;
+//
+//         *entity_path == rhs.entity_path
+//             && *is_sorted == rhs.is_sorted
+//             && *row_ids == rhs.row_ids
+//             && *timelines == rhs.timelines
+//             && components.keys().collect_vec() == rhs.components.keys().collect_vec()
+//             && components.iter().all(|(component_name, list_array)| {
+//                 let Some(rhs_list_array) = rhs.components.get(component_name) else {
+//                     return false;
+//                 };
+//
+//                 // `arrow2::compute::comparison` has very limited support for the different arrow
+//                 // types, so we just do our best here.
+//                 // This is just a testing/debugging tool.
+//                 if arrow2::compute::comparison::can_eq(list_array.data_type()) {
+//                     arrow2::compute::comparison::eq(list_array, rhs_list_array)
+//                         .values_iter()
+//                         .all(|v| v)
+//                 } else {
+//                     list_array.data_type() == rhs_list_array.data_type()
+//                         && list_array.len() == rhs_list_array.len()
+//                 }
+//             })
+//     }
+// }
+//
+// #[cfg(test)] // do not ever use this outside internal testing, it's extremely slow and hackish
+// impl Eq for Chunk {}
+//
+// #[cfg(test)] // do not ever use this outside internal testing, it's extremely slow and hackish
+// impl PartialEq for ChunkTimeline {
+//     #[inline]
+//     fn eq(&self, rhs: &Self) -> bool {
+//         let Self {
+//             timeline,
+//             times,
+//             is_sorted,
+//             time_range,
+//         } = self;
+//
+//         *timeline == rhs.timeline
+//             && *is_sorted == rhs.is_sorted
+//             && *time_range == rhs.time_range
+//             && {
+//                 arrow2::compute::comparison::eq(&*times, &rhs.times)
+//                     .values_iter()
+//                     .all(|v| v)
+//             }
+//     }
+// }
+//
+// #[cfg(test)] // do not ever use this outside internal testing, it's extremely slow and hackish
+// impl Eq for ChunkTimeline {}
 
 impl Chunk {
     /// Creates a new [`Chunk`].
@@ -158,13 +190,21 @@ impl Chunk {
     pub fn new(
         id: ChunkId,
         entity_path: EntityPath,
-        is_sorted: Option<bool>,
-        row_ids: Vec<RowId>,
+        mut is_sorted: Option<bool>,
+        mut row_ids: Vec<RowId>,
         timelines: BTreeMap<Timeline, ChunkTimeline>,
-        components: BTreeMap<ComponentName, Box<dyn ArrowArray>>,
+        mut components: BTreeMap<ComponentName, ArrowListArray<i32>>,
     ) -> ChunkResult<Self> {
         if row_ids.is_empty() {
             return Err(ChunkError::Empty);
+        }
+
+        if timelines.is_empty() {
+            for list_array in components.values_mut() {
+                list_array.slice(row_ids.len() - 1, 1);
+            }
+            row_ids = vec![row_ids[row_ids.len() - 1]];
+            is_sorted = Some(true);
         }
 
         let mut chunk = Self {
@@ -193,7 +233,7 @@ impl Chunk {
         entity_path: EntityPath,
         is_sorted: Option<bool>,
         row_ids: Vec<RowId>,
-        components: BTreeMap<ComponentName, Box<dyn ArrowArray>>,
+        components: BTreeMap<ComponentName, ArrowListArray<i32>>,
     ) -> ChunkResult<Self> {
         Self::new(
             id,
@@ -213,49 +253,55 @@ impl ChunkTimeline {
     ///
     /// Iff you know for sure whether the data is already appropriately sorted or not, specify `is_sorted`.
     /// When left unspecified (`None`), it will be computed in O(n) time.
-    pub fn new(is_sorted: Option<bool>, times: Vec<TimeInt>) -> Option<Self> {
+    pub fn new(
+        is_sorted: Option<bool>,
+        timeline: Timeline,
+        times: ArrowPrimitiveArray<i64>,
+    ) -> Option<Self> {
         re_tracing::profile_function!(format!("{} times", times.len()));
 
-        if times.is_empty() {
+        let times = times.to(timeline.datatype()); // TODO: document + sanity
+        let time_slice = times.values().as_slice();
+        if time_slice.is_empty() {
             return None;
         }
 
         let is_sorted =
-            is_sorted.unwrap_or_else(|| times.windows(2).all(|times| times[0] <= times[1]));
+            is_sorted.unwrap_or_else(|| time_slice.windows(2).all(|times| times[0] <= times[1]));
 
         let time_range = if is_sorted {
             // NOTE: The 'or' in 'unwrap_or' is never hit, but better safe than sorry.
-            let min_time = times.first().copied().unwrap_or(TimeInt::MIN);
-            let max_time = times.last().copied().unwrap_or(TimeInt::MAX);
+            let min_time = time_slice
+                .first()
+                .copied()
+                .map_or(TimeInt::MIN, TimeInt::new_temporal);
+            let max_time = time_slice
+                .last()
+                .copied()
+                .map_or(TimeInt::MAX, TimeInt::new_temporal);
             ResolvedTimeRange::new(min_time, max_time)
         } else {
             // NOTE: Do the iteration multiple times in a cache-friendly way rather than the opposite.
             // NOTE: The 'or' in 'unwrap_or' is never hit, but better safe than sorry.
-            let min_time = times.iter().min().copied().unwrap_or(TimeInt::MIN);
-            let max_time = times.iter().max().copied().unwrap_or(TimeInt::MAX);
+            let min_time = time_slice
+                .iter()
+                .min()
+                .copied()
+                .map_or(TimeInt::MIN, TimeInt::new_temporal);
+            let max_time = time_slice
+                .iter()
+                .max()
+                .copied()
+                .map_or(TimeInt::MAX, TimeInt::new_temporal);
             ResolvedTimeRange::new(min_time, max_time)
         };
 
         Some(Self {
+            timeline,
             times,
             is_sorted,
             time_range,
         })
-    }
-
-    /// Push a single time value at the end of this chunk.
-    #[inline]
-    pub fn push(&mut self, time: TimeInt) {
-        let Self {
-            times,
-            is_sorted,
-            time_range,
-        } = self;
-
-        *is_sorted &= times.last().copied().unwrap_or(TimeInt::MIN) <= time;
-        time_range.set_min(TimeInt::min(time_range.min(), time));
-        time_range.set_max(TimeInt::max(time_range.max(), time));
-        times.push(time);
     }
 }
 
@@ -308,6 +354,10 @@ impl Chunk {
         self.row_ids.len()
     }
 
+    pub fn row_ids(&self) -> &[RowId] {
+        &self.row_ids
+    }
+
     /// Returns the [`RowId`]-range in this [`Chunk`].
     ///
     /// This is O(1) if the chunk is sorted, O(n) otherwise.
@@ -325,6 +375,26 @@ impl Chunk {
                 self.row_ids.iter().max().copied().unwrap(),
             )
         }
+    }
+
+    #[inline]
+    pub fn is_static(&self) -> bool {
+        self.timelines.is_empty()
+    }
+
+    #[inline]
+    pub fn timelines(&self) -> &BTreeMap<Timeline, ChunkTimeline> {
+        &self.timelines
+    }
+
+    #[inline]
+    pub fn component_names(&self) -> impl Iterator<Item = ComponentName> + '_ {
+        self.components.keys().copied()
+    }
+
+    #[inline]
+    pub fn components(&self) -> &BTreeMap<ComponentName, ArrowListArray<i32>> {
+        &self.components
     }
 
     /// Computes the maximum value for each and every timeline present across this entire chunk,
@@ -349,7 +419,64 @@ impl std::fmt::Display for Chunk {
     }
 }
 
-// TODO(cmc): sizebytes impl + sizebytes caching + sizebytes in transport metadata
+impl ChunkTimeline {
+    #[inline]
+    pub fn time_range(&self) -> ResolvedTimeRange {
+        self.time_range
+    }
+
+    // TODO
+    #[inline]
+    pub fn times(&self) -> &[i64] {
+        // Unwrap: sanity checked
+        let times = self
+            .times
+            .as_any()
+            .downcast_ref::<ArrowPrimitiveArray<i64>>()
+            .unwrap();
+        times.values().as_slice()
+    }
+}
+
+// TODO: sizebytes impl + sizebytes caching + sizebytes in transport metadata
+
+impl re_types_core::SizeBytes for Chunk {
+    #[inline]
+    fn heap_size_bytes(&self) -> u64 {
+        let Self {
+            id,
+            entity_path,
+            is_sorted,
+            row_ids,
+            timelines,
+            components,
+        } = self;
+
+        id.heap_size_bytes()
+            + entity_path.heap_size_bytes()
+            + is_sorted.heap_size_bytes()
+            + row_ids.heap_size_bytes()
+            + timelines.heap_size_bytes()
+            + components.heap_size_bytes()
+    }
+}
+
+impl re_types_core::SizeBytes for ChunkTimeline {
+    #[inline]
+    fn heap_size_bytes(&self) -> u64 {
+        let Self {
+            timeline,
+            times,
+            is_sorted,
+            time_range,
+        } = self;
+
+        timeline.heap_size_bytes()
+            + times.heap_size_bytes() // cheap
+            + is_sorted.heap_size_bytes()
+            + time_range.heap_size_bytes()
+    }
+}
 
 // TODO(cmc): methods to merge chunks (compaction).
 
@@ -444,10 +571,23 @@ impl ChunkTimeline {
     /// Costly checks are only run in debug builds.
     pub fn sanity_check(&self) -> ChunkResult<()> {
         let Self {
+            timeline,
             times,
             is_sorted,
             time_range,
         } = self;
+
+        // TODO: sanity check timeline datatype and subdatatype
+
+        let Some(times) = times.as_any().downcast_ref::<ArrowPrimitiveArray<i64>>() else {
+            return Err(ChunkError::Malformed {
+                reason: format!(
+                    "Chunk timeline must be backed by an array of i64s, got {:?} instead",
+                    times.data_type(),
+                ),
+            });
+        };
+        let times = times.values().as_slice();
 
         #[allow(clippy::collapsible_if)] // readability
         if cfg!(debug_assertions) {
@@ -463,8 +603,10 @@ impl ChunkTimeline {
 
         #[allow(clippy::collapsible_if)] // readability
         if cfg!(debug_assertions) {
-            let is_tight_bound = times.iter().any(|&time| time == time_range.min())
-                && times.iter().any(|&time| time == time_range.max());
+            let is_tight_lower_bound = times.iter().any(|&time| time == time_range.min().as_i64());
+            let is_tight_upper_bound = times.iter().any(|&time| time == time_range.max().as_i64());
+            let is_tight_bound = is_tight_lower_bound && is_tight_upper_bound;
+
             if !is_tight_bound {
                 return Err(ChunkError::Malformed {
                     reason: "Chunk timeline's cached time range isn't a tight bound.".to_owned(),
@@ -472,17 +614,17 @@ impl ChunkTimeline {
             }
 
             for &time in times {
-                if time < time_range.min() || time > time_range.max() {
+                if time < time_range.min().as_i64() || time > time_range.max().as_i64() {
                     return Err(ChunkError::Malformed {
                         reason: format!(
                             "Chunk timeline's cached time range is wrong.\
                              Found a time value of {} while its time range is {time_range:?}",
-                            time.as_i64(),
+                            time,
                         ),
                     });
                 }
 
-                if time.is_static() {
+                if time == TimeInt::STATIC.as_i64() {
                     return Err(ChunkError::Malformed {
                         reason: "A chunk's timeline should never contain a static time value."
                             .to_owned(),

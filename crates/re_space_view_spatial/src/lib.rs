@@ -46,7 +46,7 @@ mod view_kind {
 
 fn resolution_from_tensor(
     entity_db: &re_entity_db::EntityDb,
-    query: &re_data_store::LatestAtQuery,
+    query: &re_data_store2::LatestAtQuery,
     entity_path: &re_log_types::EntityPath,
 ) -> Option<Resolution> {
     // TODO(#5607): what should happen if the promise is still pending?
@@ -62,7 +62,7 @@ fn resolution_from_tensor(
 /// Utility for querying a pinhole archetype instance.
 fn query_pinhole(
     entity_db: &re_entity_db::EntityDb,
-    query: &re_data_store::LatestAtQuery,
+    query: &re_data_store2::LatestAtQuery,
     entity_path: &re_log_types::EntityPath,
 ) -> Option<re_types::archetypes::Pinhole> {
     // TODO(#5607): what should happen if the promise is still pending?

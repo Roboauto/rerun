@@ -106,3 +106,31 @@ pub use self::triangle_indices::TriangleIndices;
 pub use self::vector2d::Vector2D;
 pub use self::vector3d::Vector3D;
 pub use self::view_coordinates::ViewCoordinates;
+
+// ---
+
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
+
+use arrow2::datatypes::DataType;
+
+use crate::{ComponentName, Loggable};
+
+static DATATYPE_PER_COMPONENT_NAME: OnceLock<BTreeMap<ComponentName, DataType>> = OnceLock::new();
+
+// TODO: doc (_canonical datatype for a component_).
+#[inline]
+pub fn datatype_from_component_name(component_name: &ComponentName) -> Option<&'static DataType> {
+    DATATYPE_PER_COMPONENT_NAME
+        .get_or_init(|| {
+            [
+                (
+                    AnnotationContext::name(),
+                    AnnotationContext::arrow_datatype(),
+                ), //
+            ]
+            .into_iter()
+            .collect()
+        })
+        .get(component_name)
+}

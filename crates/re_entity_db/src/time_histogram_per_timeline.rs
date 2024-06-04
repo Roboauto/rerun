@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use re_data_store::{StoreEvent, StoreSubscriber};
+use re_data_store2::{StoreEvent2, StoreSubscriber2};
 use re_log_types::{TimeInt, TimePoint, Timeline};
 
 // ---
@@ -61,8 +61,8 @@ impl TimeHistogramPerTimeline {
         self.times.values().map(|hist| hist.total_count()).sum()
     }
 
-    pub fn add(&mut self, times: &[(Timeline, TimeInt)], n: u32) {
-        if times.is_empty() {
+    pub fn add(&mut self, times_per_timeline: &[(Timeline, &[i64])], n: u32) {
+        if times_per_timeline.is_empty() {
             self.num_static_messages = self
                 .num_static_messages
                 .checked_add(n as u64)
@@ -75,17 +75,17 @@ impl TimeHistogramPerTimeline {
                     u64::MAX
                 });
         } else {
-            for &(timeline, time) in times {
-                self.times
-                    .entry(timeline)
-                    .or_default()
-                    .increment(time.as_i64(), n);
+            for &(timeline, times) in times_per_timeline {
+                let histogram = self.times.entry(timeline).or_default();
+                for &time in times {
+                    histogram.increment(time, n);
+                }
             }
         }
     }
 
-    pub fn remove(&mut self, timepoint: &TimePoint, n: u32) {
-        if timepoint.is_static() {
+    pub fn remove(&mut self, times_per_timeline: &[(Timeline, &[i64])], n: u32) {
+        if times_per_timeline.is_empty() {
             self.num_static_messages = self
                 .num_static_messages
                 .checked_sub(n as u64)
@@ -99,14 +99,14 @@ impl TimeHistogramPerTimeline {
                     u64::MIN
                 });
         } else {
-            for (timeline, time_value) in timepoint.iter() {
-                let remaining_count = self
-                    .times
-                    .entry(*timeline)
-                    .or_default()
-                    .decrement(time_value.as_i64(), n);
+            for &(timeline, times) in times_per_timeline {
+                let histogram = self.times.entry(timeline).or_default();
+                let mut remaining_count = u32::MAX;
+                for &time in times {
+                    remaining_count = histogram.decrement(time, n);
+                }
                 if remaining_count == 0 {
-                    self.times.remove(timeline);
+                    self.times.remove(&timeline);
                 }
             }
         }
@@ -115,7 +115,7 @@ impl TimeHistogramPerTimeline {
 
 // NOTE: This is only to let people know that this is in fact a [`StoreSubscriber`], so they A) don't try
 // to implement it on their own and B) don't try to register it.
-impl StoreSubscriber for TimeHistogramPerTimeline {
+impl StoreSubscriber2 for TimeHistogramPerTimeline {
     #[inline]
     fn name(&self) -> String {
         "rerun.store_subscriber.TimeHistogramPerTimeline".into()
@@ -132,7 +132,7 @@ impl StoreSubscriber for TimeHistogramPerTimeline {
     }
 
     #[allow(clippy::unimplemented)]
-    fn on_events(&mut self, _events: &[StoreEvent]) {
+    fn on_events(&mut self, _events: &[StoreEvent2]) {
         unimplemented!(
             r"TimeHistogramPerTimeline view is maintained as a sub-view of `EntityTree`",
         );

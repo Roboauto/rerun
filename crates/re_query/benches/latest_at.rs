@@ -7,7 +7,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use itertools::Itertools;
-use re_data_store::{DataStore, LatestAtQuery, StoreSubscriber};
+use re_data_store2::{DataStore, LatestAtQuery, StoreSubscriber};
 use re_log_types::{entity_path, DataRow, EntityPath, RowId, TimeInt, TimeType, Timeline};
 use re_query::{clamped_zip_1x1, PromiseResolver};
 use re_query::{Caches, LatestAtResults};

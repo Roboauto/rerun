@@ -1,6 +1,6 @@
 use nohash_hasher::IntSet;
 
-use re_data_store::{LatestAtQuery, RangeQuery};
+use re_data_store2::{LatestAtQuery, RangeQuery};
 use re_query::{LatestAtResults, RangeResults};
 use re_types_core::ComponentName;
 use re_viewer_context::ViewerContext;

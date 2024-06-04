@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use egui_extras::Column;
 
-use re_data_store::{DataStore, LatestAtQuery};
+use re_data_store2::{DataStore2, LatestAtQuery};
 use re_data_ui::item_ui::instance_path_button;
 use re_entity_db::{EntityProperties, InstancePath};
 use re_log_types::{EntityPath, Instance, Timeline};
@@ -221,7 +221,7 @@ impl SpaceViewClass for DataframeSpaceView {
 /// Returns a sorted, deduplicated iterator of all instance paths for a given entity.
 fn sorted_instance_paths_for<'a>(
     entity_path: &'a EntityPath,
-    store: &'a DataStore,
+    store: &'a DataStore2,
     timeline: &'a Timeline,
     latest_at_query: &'a LatestAtQuery,
 ) -> impl Iterator<Item = InstancePath> + 'a {
@@ -232,10 +232,13 @@ fn sorted_instance_paths_for<'a>(
         .filter(|comp| !comp.is_indicator_component())
         .flat_map(|comp| {
             let num_instances = store
-                .latest_at(latest_at_query, entity_path, comp, &[comp])
-                .map_or(0, |(_, _, cells)| {
-                    cells[0].as_ref().map_or(0, |cell| cell.num_instances())
-                });
+                .latest_at(latest_at_query, entity_path, comp)
+                .into_iter()
+                // TODO
+                .filter_map(|chunk| chunk.latest_at(latest_at_query, comp))
+                .max_by_key(|chunk| chunk.row_id_range().1)
+                .and_then(|chunk| chunk.component_batch_at(&comp, chunk.num_rows() - 1))
+                .map_or(0, |batch| batch.len());
             (0..num_instances).map(|i| Instance::from(i as u64))
         })
         .collect::<BTreeSet<_>>() // dedup and sort

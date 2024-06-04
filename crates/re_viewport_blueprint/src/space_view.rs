@@ -2,10 +2,10 @@ use itertools::{FoldWhile, Itertools};
 use re_entity_db::EntityProperties;
 use re_types::SpaceViewClassIdentifier;
 
-use crate::{SpaceViewContents, ViewProperty};
-use re_data_store::LatestAtQuery;
+use re_chunk::Chunk;
+use re_data_store2::LatestAtQuery;
 use re_entity_db::{EntityDb, EntityPath, EntityPropertiesComponent, EntityPropertyMap};
-use re_log_types::{DataRow, EntityPathSubs, RowId, Timeline};
+use re_log_types::{EntityPathSubs, RowId, Timeline};
 use re_types::{
     blueprint::{
         archetypes::{self as blueprint_archetypes},
@@ -20,6 +20,8 @@ use re_viewer_context::{
     SpaceViewClassRegistry, SpaceViewId, SpaceViewState, StoreContext, SystemCommand,
     SystemCommandSender as _, SystemExecutionOutput, ViewQuery, ViewerContext,
 };
+
+use crate::{SpaceViewContents, ViewProperty};
 
 /// A view of a space.
 ///
@@ -47,7 +49,7 @@ pub struct SpaceViewBlueprint {
     pub visible: bool,
 
     /// Pending blueprint writes for nested components from duplicate.
-    pending_writes: Vec<DataRow>,
+    pending_writes: Vec<Chunk>,
 }
 
 impl SpaceViewBlueprint {
@@ -207,19 +209,22 @@ impl SpaceViewBlueprint {
         let mut deltas = pending_writes.clone();
 
         // Add all the additional components from the archetype
-        if let Ok(row) =
-            DataRow::from_archetype(RowId::new(), timepoint.clone(), id.as_entity_path(), &arch)
+        if let Ok(chunk) = Chunk::builder(id.as_entity_path())
+            .with_archetype(RowId::new(), timepoint.clone(), &arch)
+            .build()
         {
-            deltas.push(row);
+            deltas.push(chunk);
         }
 
         contents.save_to_blueprint_store(ctx);
 
-        ctx.command_sender
-            .send_system(SystemCommand::UpdateBlueprint(
-                ctx.store_context.blueprint.store_id().clone(),
-                deltas,
-            ));
+        for delta in deltas {
+            ctx.command_sender
+                .send_system(SystemCommand::UpdateBlueprint(
+                    ctx.store_context.blueprint.store_id().clone(),
+                    delta,
+                ));
+        }
     }
 
     /// Creates a new [`SpaceViewBlueprint`] with the same contents, but a different [`SpaceViewId`]
@@ -243,30 +248,31 @@ impl SpaceViewBlueprint {
                     .cloned()
                     .collect();
 
-                if let Ok(row) = DataRow::from_cells(
-                    RowId::new(),
-                    store_context.blueprint_timepoint_for_writes(),
-                    sub_path,
-                    info.components
-                        .keys()
-                        // It's important that we don't include the SpaceViewBlueprint's components
-                        // since those will be updated separately and may contain different data.
-                        .filter(|component| {
-                            *path != current_path
-                                || !blueprint_archetypes::SpaceViewBlueprint::all_components()
-                                    .contains(component)
-                        })
-                        .filter_map(|component| {
-                            blueprint
-                                .store()
-                                .latest_at(query, path, *component, &[*component])
-                                .and_then(|(_, _, cells)| cells[0].clone())
-                        }),
-                ) {
-                    if row.num_cells() > 0 {
-                        pending_writes.push(row);
-                    }
-                }
+                // TODO
+                // if let Ok(row) = DataRow::from_cells(
+                //     RowId::new(),
+                //     store_context.blueprint_timepoint_for_writes(),
+                //     sub_path,
+                //     info.components
+                //         .keys()
+                //         // It's important that we don't include the SpaceViewBlueprint's components
+                //         // since those will be updated separately and may contain different data.
+                //         .filter(|component| {
+                //             *path != current_path
+                //                 || !blueprint_archetypes::SpaceViewBlueprint::all_components()
+                //                     .contains(component)
+                //         })
+                //         .filter_map(|component| {
+                //             blueprint
+                //                 .store()
+                //                 .latest_at(query, path, *component, &[*component])
+                //                 .and_then(|(_, _, cells)| cells[0].clone())
+                //         }),
+                // ) {
+                //     if row.num_cells() > 0 {
+                //         pending_writes.push(row);
+                //     }
+                // }
             });
         }
 
@@ -469,7 +475,7 @@ mod tests {
     use re_entity_db::{EntityDb, EntityProperties, EntityPropertiesComponent};
     use re_log_types::{
         example_components::{MyColor, MyLabel, MyPoint},
-        DataCell, DataRow, RowId, StoreId, StoreKind, TimePoint,
+        RowId, StoreId, StoreKind, TimePoint,
     };
     use re_types::{archetypes::Points3D, ComponentBatch, ComponentName, Loggable as _};
     use re_viewer_context::{

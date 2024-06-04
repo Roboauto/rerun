@@ -2,9 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use itertools::Itertools;
 
-use re_data_store::LatestAtQuery;
+use re_data_store2::LatestAtQuery;
 use re_entity_db::{EntityDb, InstancePath};
-use re_log_types::{DataCell, DataRow, RowId, StoreKind};
+use re_log_types::{RowId, StoreKind};
 use re_types_core::{components::VisualizerOverrides, ComponentName};
 use re_viewer_context::{
     ComponentUiTypes, DataResult, OverridePath, QueryContext, SpaceViewClassExt as _,
@@ -234,55 +234,56 @@ pub fn add_new_override(
                         continue;
                     }
 
-                    if ui.button(component.short_name()).clicked() {
-                        // We are creating a new override. We need to decide what initial value to give it.
-                        // - First see if there's an existing splat in the recording.
-                        // - Next see if visualizer system wants to provide a value.
-                        // - Finally, fall back on the default value from the component registry.
-
-                        let components = [*component];
-
-                        let Some(mut initial_data) = db
-                            .store()
-                            .latest_at(query, &data_result.entity_path, *component, &components)
-                            .and_then(|result| result.2[0].clone())
-                            .or_else(|| {
-                                view_systems.get_by_identifier(*viz).ok().and_then(|sys| {
-                                    sys.fallback_for(&query_context, *component)
-                                        .map(|fallback| DataCell::from_arrow(*component, fallback))
-                                        .ok()
-                                })
-                            })
-                        else {
-                            re_log::warn!("Could not identify an initial value for: {}", component);
-                            return;
-                        };
-
-                        initial_data.compute_size_bytes();
-
-                        match DataRow::from_cells(
-                            RowId::new(),
-                            ctx.store_context.blueprint_timepoint_for_writes(),
-                            override_path.clone(),
-                            [initial_data],
-                        ) {
-                            Ok(row) => {
-                                ctx.command_sender
-                                    .send_system(SystemCommand::UpdateBlueprint(
-                                        ctx.store_context.blueprint.store_id().clone(),
-                                        vec![row],
-                                    ));
-                            }
-                            Err(err) => {
-                                re_log::warn!(
-                                    "Failed to create DataRow for blueprint component: {}",
-                                    err
-                                );
-                            }
-                        }
-
-                        ui.close_menu();
-                    }
+                    // TODO
+                    // if ui.button(component.short_name()).clicked() {
+                    //     // We are creating a new override. We need to decide what initial value to give it.
+                    //     // - First see if there's an existing splat in the recording.
+                    //     // - Next see if visualizer system wants to provide a value.
+                    //     // - Finally, fall back on the default value from the component registry.
+                    //
+                    //     let components = [*component];
+                    //
+                    //     let Some(mut initial_data) = db
+                    //         .store()
+                    //         .latest_at(query, &data_result.entity_path, *component, &components)
+                    //         .and_then(|result| result.2[0].clone())
+                    //         .or_else(|| {
+                    //             view_systems.get_by_identifier(*viz).ok().and_then(|sys| {
+                    //                 sys.fallback_for(&query_context, *component)
+                    //                     .map(|fallback| DataCell::from_arrow(*component, fallback))
+                    //                     .ok()
+                    //             })
+                    //         })
+                    //     else {
+                    //         re_log::warn!("Could not identify an initial value for: {}", component);
+                    //         return;
+                    //     };
+                    //
+                    //     initial_data.compute_size_bytes();
+                    //
+                    //     match DataRow::from_cells(
+                    //         RowId::new(),
+                    //         ctx.store_context.blueprint_timepoint_for_writes(),
+                    //         override_path.clone(),
+                    //         [initial_data],
+                    //     ) {
+                    //         Ok(row) => {
+                    //             ctx.command_sender
+                    //                 .send_system(SystemCommand::UpdateBlueprint(
+                    //                     ctx.store_context.blueprint.store_id().clone(),
+                    //                     vec![row],
+                    //                 ));
+                    //         }
+                    //         Err(err) => {
+                    //             re_log::warn!(
+                    //                 "Failed to create DataRow for blueprint component: {}",
+                    //                 err
+                    //             );
+                    //         }
+                    //     }
+                    //
+                    //     ui.close_menu();
+                    // }
                 }
             })
             .response

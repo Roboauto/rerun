@@ -53,7 +53,7 @@ impl EntityDataUi for re_types::components::TensorData {
         ui: &mut egui::Ui,
         ui_layout: UiLayout,
         entity_path: &EntityPath,
-        query: &re_data_store::LatestAtQuery,
+        query: &re_data_store2::LatestAtQuery,
         db: &re_entity_db::EntityDb,
     ) {
         re_tracing::profile_function!();
@@ -93,7 +93,7 @@ impl EntityDataUi for re_types::components::TensorData {
 #[allow(clippy::too_many_arguments)]
 pub fn tensor_ui(
     ctx: &ViewerContext<'_>,
-    query: &re_data_store::LatestAtQuery,
+    query: &re_data_store2::LatestAtQuery,
     db: &re_entity_db::EntityDb,
     ui: &mut egui::Ui,
     ui_layout: UiLayout,

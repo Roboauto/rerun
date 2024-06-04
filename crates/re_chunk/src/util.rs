@@ -12,7 +12,7 @@ use itertools::Itertools as _;
 /// All arrays must have the same datatype.
 ///
 /// Returns `None` if `arrays` is empty.
-pub fn arrays_to_list_array(arrays: &[Option<&dyn ArrowArray>]) -> Option<Box<dyn ArrowArray>> {
+pub fn arrays_to_list_array(arrays: &[Option<&dyn ArrowArray>]) -> Option<ArrowListArray<i32>> {
     let arrays_dense = arrays.iter().flatten().copied().collect_vec();
 
     if arrays_dense.is_empty() {
@@ -26,13 +26,7 @@ pub fn arrays_to_list_array(arrays: &[Option<&dyn ArrowArray>]) -> Option<Box<dy
         })
         .ok()?;
 
-    let datatype = arrays_dense
-        .first()
-        .map(|array| array.data_type().clone())?;
-    debug_assert!(arrays_dense
-        .iter()
-        .all(|array| *array.data_type() == datatype));
-    let datatype = ArrowListArray::<i32>::default_datatype(datatype);
+    let datatype = ArrowListArray::<i32>::default_datatype(data.data_type().clone());
 
     #[allow(clippy::unwrap_used)] // yes, there are indeed lengths
     let offsets = ArrowOffsets::try_from_lengths(
@@ -45,5 +39,10 @@ pub fn arrays_to_list_array(arrays: &[Option<&dyn ArrowArray>]) -> Option<Box<dy
     #[allow(clippy::from_iter_instead_of_collect)]
     let validity = ArrowBitmap::from_iter(arrays.iter().map(Option::is_some));
 
-    Some(ArrowListArray::<i32>::new(datatype, offsets.into(), data, validity.into()).boxed())
+    Some(ArrowListArray::<i32>::new(
+        datatype,
+        offsets.into(),
+        data,
+        validity.into(),
+    ))
 }

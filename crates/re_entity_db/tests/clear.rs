@@ -1,7 +1,7 @@
 // https://github.com/rust-lang/rust-clippy/issues/10011
 #![cfg(test)]
 
-use re_data_store::LatestAtQuery;
+use re_data_store2::LatestAtQuery;
 use re_entity_db::EntityDb;
 use re_log_types::{
     example_components::{MyColor, MyIndex, MyPoint},

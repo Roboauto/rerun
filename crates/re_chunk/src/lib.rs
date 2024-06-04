@@ -4,8 +4,12 @@
 #![doc = document_features::document_features!()]
 //!
 
+mod builder;
 mod chunk;
+mod query;
 mod shuffle;
+mod slice;
+// mod temp; // TODO
 mod transport;
 mod util;
 
@@ -13,6 +17,7 @@ mod util;
 mod batcher;
 
 pub use self::chunk::{Chunk, ChunkError, ChunkId, ChunkResult, ChunkTimeline};
+pub use self::query::{LatestAtQuery, RangeQuery};
 pub use self::transport::TransportChunk;
 pub use self::util::arrays_to_list_array;
 
@@ -23,4 +28,5 @@ pub use self::batcher::{
 
 pub mod external {
     pub use arrow2;
+    pub use crossbeam;
 }

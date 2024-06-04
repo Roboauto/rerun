@@ -1,6 +1,4 @@
-use re_log_types::{
-    ArrowMsg, BlueprintActivationCommand, DataTable, LogMsg, SetStoreInfo, StoreInfo,
-};
+use re_log_types::{ArrowMsg, BlueprintActivationCommand, LogMsg, SetStoreInfo, StoreInfo};
 use re_viewer_context::{UiLayout, ViewerContext};
 
 use super::DataUi;
@@ -12,12 +10,14 @@ impl DataUi for LogMsg {
         ctx: &ViewerContext<'_>,
         ui: &mut egui::Ui,
         ui_layout: UiLayout,
-        query: &re_data_store::LatestAtQuery,
+        query: &re_data_store2::LatestAtQuery,
         db: &re_entity_db::EntityDb,
     ) {
         match self {
             Self::SetStoreInfo(msg) => msg.data_ui(ctx, ui, ui_layout, query, db),
-            Self::ArrowMsg(_, msg) => msg.data_ui(ctx, ui, ui_layout, query, db),
+            // TODO
+            // Self::ArrowMsg(_, msg) => msg.data_ui(ctx, ui, ui_layout, query, db),
+            Self::ArrowMsg(_, msg) => {}
             Self::BlueprintActivationCommand(BlueprintActivationCommand {
                 blueprint_id,
                 make_active,
@@ -37,7 +37,7 @@ impl DataUi for SetStoreInfo {
         ctx: &ViewerContext<'_>,
         ui: &mut egui::Ui,
         _ui_layout: UiLayout,
-        _query: &re_data_store::LatestAtQuery,
+        _query: &re_data_store2::LatestAtQuery,
         _db: &re_entity_db::EntityDb,
     ) {
         let Self { row_id: _, info } = self;
@@ -97,48 +97,49 @@ impl DataUi for SetStoreInfo {
     }
 }
 
-impl DataUi for ArrowMsg {
-    fn data_ui(
-        &self,
-        ctx: &ViewerContext<'_>,
-        ui: &mut egui::Ui,
-        ui_layout: UiLayout,
-        query: &re_data_store::LatestAtQuery,
-        db: &re_entity_db::EntityDb,
-    ) {
-        let table = match DataTable::from_arrow_msg(self) {
-            Ok(table) => table,
-            Err(err) => {
-                ui.label(
-                    ctx.re_ui
-                        .error_text(format!("Error parsing ArrowMsg: {err}")),
-                );
-                return;
-            }
-        };
-
-        // TODO(cmc): Come up with something a bit nicer once data tables become a common sight.
-        for row in table.to_rows() {
-            match row {
-                Ok(row) => {
-                    egui::Grid::new("fields").num_columns(2).show(ui, |ui| {
-                        ui.monospace("entity_path:");
-                        item_ui::entity_path_button(ctx, query, db, ui, None, row.entity_path());
-                        ui.end_row();
-
-                        ui.monospace("time_point:");
-                        row.timepoint().data_ui(ctx, ui, ui_layout, query, db);
-                        ui.end_row();
-
-                        ui.monospace("components:");
-                        row.cells().data_ui(ctx, ui, ui_layout, query, db);
-                        ui.end_row();
-                    });
-                }
-                Err(err) => {
-                    ui.label(ctx.re_ui.error_text(err.to_string()));
-                }
-            }
-        }
-    }
-}
+// TODO: who even cares?
+// impl DataUi for ArrowMsg {
+//     fn data_ui(
+//         &self,
+//         ctx: &ViewerContext<'_>,
+//         ui: &mut egui::Ui,
+//         ui_layout: UiLayout,
+//         query: &re_data_store2::LatestAtQuery,
+//         db: &re_entity_db::EntityDb,
+//     ) {
+//         let table = match DataTable::from_arrow_msg(self) {
+//             Ok(table) => table,
+//             Err(err) => {
+//                 ui.label(
+//                     ctx.re_ui
+//                         .error_text(format!("Error parsing ArrowMsg: {err}")),
+//                 );
+//                 return;
+//             }
+//         };
+//
+//         // TODO(cmc): Come up with something a bit nicer once data tables become a common sight.
+//         for row in table.to_rows() {
+//             match row {
+//                 Ok(row) => {
+//                     egui::Grid::new("fields").num_columns(2).show(ui, |ui| {
+//                         ui.monospace("entity_path:");
+//                         item_ui::entity_path_button(ctx, query, db, ui, None, row.entity_path());
+//                         ui.end_row();
+//
+//                         ui.monospace("time_point:");
+//                         row.timepoint().data_ui(ctx, ui, ui_layout, query, db);
+//                         ui.end_row();
+//
+//                         ui.monospace("components:");
+//                         row.cells().data_ui(ctx, ui, ui_layout, query, db);
+//                         ui.end_row();
+//                     });
+//                 }
+//                 Err(err) => {
+//                     ui.label(ctx.re_ui.error_text(err.to_string()));
+//                 }
+//             }
+//         }
+//     }
+// }

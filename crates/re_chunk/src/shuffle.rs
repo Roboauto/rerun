@@ -1,5 +1,7 @@
 use arrow2::{
-    array::{Array as ArrowArray, ListArray as ArrowListArray},
+    array::{
+        Array as ArrowArray, ListArray as ArrowListArray, PrimitiveArray as ArrowPrimitiveArray,
+    },
     offset::Offsets as ArrowOffsets,
 };
 use itertools::Itertools as _;
@@ -133,17 +135,19 @@ impl Chunk {
 
             for info in timelines.values_mut() {
                 let ChunkTimeline {
+                    timeline,
                     times,
                     is_sorted,
                     time_range: _,
                 } = info;
 
-                let original = times.clone();
+                let mut sorted = times.values().to_vec();
                 for (to, from) in swaps.iter().copied().enumerate() {
-                    times[to] = original[from];
+                    sorted[to] = times.values()[from];
                 }
 
-                *is_sorted = times.windows(2).all(|times| times[0] <= times[1]);
+                *is_sorted = sorted.windows(2).all(|times| times[0] <= times[1]);
+                *times = ArrowPrimitiveArray::<i64>::from_vec(sorted).to(timeline.datatype());
             }
         }
 
@@ -180,8 +184,7 @@ impl Chunk {
                     .validity()
                     .map(|validity| swaps.iter().map(|&from| validity.get_bit(from)).collect());
 
-                *original =
-                    ArrowListArray::<i32>::new(datatype, offsets.into(), values, validity).boxed();
+                *original = ArrowListArray::<i32>::new(datatype, offsets.into(), values, validity);
             }
         }
 
@@ -209,7 +212,7 @@ impl ChunkTimeline {
     #[inline]
     pub fn is_sorted_uncached(&self) -> bool {
         re_tracing::profile_function!();
-        self.times.windows(2).all(|times| times[0] <= times[1])
+        self.times().windows(2).all(|times| times[0] <= times[1])
     }
 }
 
@@ -230,7 +233,7 @@ mod tests {
         let entity_path: EntityPath = "a/b/c".into();
 
         let timeline1 = Timeline::new_temporal("log_time");
-        let timeline2 = Timeline::new_temporal("frame_nr");
+        let timeline2 = Timeline::new_sequence("frame_nr");
 
         let points1 = MyPoint::to_arrow([
             MyPoint::new(1.0, 2.0),
@@ -258,7 +261,8 @@ mod tests {
                 timeline1,
                 ChunkTimeline::new(
                     Some(true),
-                    [1000, 1001, 1002, 1003].map(TimeInt::new_temporal).to_vec(),
+                    timeline1,
+                    ArrowPrimitiveArray::<i64>::from_vec(vec![1000, 1001, 1002, 1003]),
                 )
                 .unwrap(),
             ),
@@ -266,7 +270,8 @@ mod tests {
                 timeline2,
                 ChunkTimeline::new(
                     Some(true),
-                    [42, 43, 44, 45].map(TimeInt::new_temporal).to_vec(),
+                    timeline2,
+                    ArrowPrimitiveArray::<i64>::from_vec(vec![42, 43, 44, 45]),
                 )
                 .unwrap(),
             ),

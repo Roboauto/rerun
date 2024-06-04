@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use arrow2::{
-    array::{Array as ArrowArray, PrimitiveArray as ArrowPrimitiveArray},
+    array::{Array as ArrowArray, ListArray, PrimitiveArray as ArrowPrimitiveArray},
     chunk::Chunk as ArrowChunk,
     datatypes::{
         DataType as ArrowDatatype, Field as ArrowField, Metadata as ArrowMetadata,
@@ -186,12 +186,30 @@ impl TransportChunk {
                 })?;
                 Ok(ChunkId::from_u128(id))
             }
-            None => Err(crate::ChunkError::Malformed {
-                reason: format!(
-                    "chunk id missing from metadata ({:?})",
-                    self.schema.metadata
-                ),
-            }),
+            None => {
+                // TODO: why the fuck do we need this???
+                // TODO: still need this when we load an old blueprint kinda thing
+                // the answer is probably that the save logic saves tables and not chunks ><
+                if let Some(id) = self
+                    .schema
+                    .metadata
+                    // .get(re_log_types::TableId::name().as_str())
+                    .get("rerun.controls.TableId")
+                {
+                    let id = u128::from_str_radix(id, 16).map_err(|err| ChunkError::Malformed {
+                        reason: format!("cannot deserialize chunk id: {err}"),
+                    })?;
+                    return Ok(ChunkId::from_u128(id));
+                }
+
+                Err(crate::ChunkError::Malformed {
+                    reason: format!(
+                        "chunk id missing from metadata ({:?})",
+                        self.schema.metadata
+                    ),
+                })
+                //
+            }
         }
     }
 
@@ -358,20 +376,11 @@ impl Chunk {
 
             for (timeline, info) in timelines {
                 let ChunkTimeline {
+                    timeline: _,
                     times,
                     is_sorted,
                     time_range: _,
                 } = info;
-
-                let times = {
-                    let values = times.iter().map(|time| time.as_i64()).collect();
-                    ArrowPrimitiveArray::new(
-                        arrow2::types::PrimitiveType::Int64.into(),
-                        values,
-                        None,
-                    )
-                    .to(timeline.datatype())
-                };
 
                 let field = ArrowField::new(
                     timeline.name().to_string(),
@@ -387,7 +396,7 @@ impl Chunk {
                 });
 
                 schema.fields.push(field);
-                columns.push(Box::new(times));
+                columns.push(times.clone().boxed() /* cheap */);
             }
         }
 
@@ -400,7 +409,7 @@ impl Chunk {
                     ArrowField::new(component_name.to_string(), data.data_type().clone(), true)
                         .with_metadata(TransportChunk::field_metadata_data_column()),
                 );
-                columns.push(data.clone() /* refcounted (dyn Clone) */);
+                columns.push(data.clone().boxed());
             }
         }
 
@@ -492,11 +501,8 @@ impl Chunk {
 
                 let time_chunk = ChunkTimeline::new(
                     is_sorted.then_some(true),
-                    times
-                        .values_iter()
-                        .copied()
-                        .map(TimeInt::new_temporal)
-                        .collect(),
+                    timeline,
+                    times.clone(), /* cheap */
                 );
 
                 if let Some(time_chunk) = time_chunk {
@@ -519,6 +525,7 @@ impl Chunk {
             let mut components = BTreeMap::default();
 
             for (field, column) in chunk.components() {
+                // TODO: no need for this no more
                 if !matches!(column.data_type(), ArrowDatatype::List(_)) {
                     return Err(ChunkError::Malformed {
                         reason: format!(
@@ -528,6 +535,9 @@ impl Chunk {
                         ),
                     });
                 }
+
+                // TODO
+                let column = column.as_any().downcast_ref::<ListArray<i32>>().unwrap();
 
                 if components
                     .insert(
@@ -579,7 +589,8 @@ mod tests {
             timeline1,
             ChunkTimeline::new(
                 Some(true),
-                [42, 43, 44, 45].map(TimeInt::new_temporal).to_vec(),
+                timeline1,
+                ArrowPrimitiveArray::<i64>::from_vec(vec![42, 43, 44, 45]),
             )
             .unwrap(),
         ))

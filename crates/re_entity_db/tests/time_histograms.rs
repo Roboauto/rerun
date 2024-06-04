@@ -3,7 +3,7 @@
 
 use std::collections::BTreeSet;
 
-use re_data_store::GarbageCollectionOptions;
+use re_data_store2::GarbageCollectionOptions;
 use re_entity_db::EntityDb;
 use re_int_histogram::RangeI64;
 use re_log_types::{

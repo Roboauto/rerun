@@ -5,7 +5,7 @@
 
 use std::sync::Arc;
 
-use crate::{TableId, TimePoint};
+use crate::TimePoint;
 use arrow2::{array::Array, chunk::Chunk, datatypes::Schema};
 
 /// An arbitrary callback to be run when an [`ArrowMsg`], and more specifically the
@@ -69,7 +69,7 @@ impl std::fmt::Debug for ArrowChunkReleaseCallback {
 #[must_use]
 pub struct ArrowMsg {
     /// Unique identifier for the [`crate::DataTable`] in this message.
-    pub table_id: TableId,
+    pub table_id: re_tuid::Tuid, // TODO
 
     /// The maximum values for all timelines across the entire batch of data.
     ///
@@ -149,7 +149,7 @@ impl<'de> serde::Deserialize<'de> for ArrowMsg {
             {
                 re_tracing::profile_scope!("ArrowMsg::deserialize");
 
-                let table_id: Option<TableId> = seq.next_element()?;
+                let table_id: Option<re_tuid::Tuid> = seq.next_element()?;
                 let timepoint_max: Option<TimePoint> = seq.next_element()?;
                 let buf: Option<serde_bytes::ByteBuf> = seq.next_element()?;
 

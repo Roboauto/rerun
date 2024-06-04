@@ -154,7 +154,7 @@ fn save_visible_time_ranges(
         visible_time_ranges.set_range_for_timeline(timeline_name, None);
     }
 
-    ctx.save_blueprint_archetype(property_path, &visible_time_ranges);
+    ctx.save_blueprint_archetype(&property_path, &visible_time_ranges);
 }
 
 /// Draws ui for showing and configuring a query range.

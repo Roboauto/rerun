@@ -3,7 +3,7 @@ use slotmap::SlotMap;
 use smallvec::SmallVec;
 
 use re_entity_db::{
-    external::re_data_store::LatestAtQuery, EntityDb, EntityProperties, EntityPropertiesComponent,
+    external::re_data_store2::LatestAtQuery, EntityDb, EntityProperties, EntityPropertiesComponent,
     EntityPropertyMap, EntityTree,
 };
 use re_log_types::{
@@ -150,7 +150,7 @@ impl SpaceViewContents {
     /// update directly to the store.
     pub fn save_to_blueprint_store(&self, ctx: &ViewerContext<'_>) {
         ctx.save_blueprint_archetype(
-            self.blueprint_entity_path.clone(),
+            &self.blueprint_entity_path,
             &blueprint_archetypes::SpaceViewContents::new(
                 self.entity_path_filter.iter_expressions(),
             ),
@@ -509,23 +509,24 @@ impl DataQueryPropertyResolver<'_> {
                 blueprint.tree().subtree(&recursive_override_path)
             {
                 for component in recursive_override_subtree.entity.components.keys() {
-                    if let Some(component_data) = blueprint
-                        .store()
-                        .latest_at(
-                            blueprint_query,
-                            &recursive_override_path,
-                            *component,
-                            &[*component],
-                        )
-                        .and_then(|(_, _, cells)| cells[0].clone())
-                    {
-                        if !component_data.is_empty() {
-                            recursive_property_overrides.to_mut().insert(
-                                *component,
-                                OverridePath::blueprint_path(recursive_override_path.clone()),
-                            );
-                        }
-                    }
+                    // TODO
+                    // if let Some(component_data) = blueprint
+                    //     .store()
+                    //     .latest_at(
+                    //         blueprint_query,
+                    //         &recursive_override_path,
+                    //         *component,
+                    //         &[*component],
+                    //     )
+                    //     .and_then(|(_, _, cells)| cells[0].clone())
+                    // {
+                    //     if !component_data.is_empty() {
+                    //         recursive_property_overrides.to_mut().insert(
+                    //             *component,
+                    //             OverridePath::blueprint_path(recursive_override_path.clone()),
+                    //         );
+                    //     }
+                    // }
                 }
             }
 
@@ -536,23 +537,24 @@ impl DataQueryPropertyResolver<'_> {
                 blueprint.tree().subtree(&individual_override_path)
             {
                 for component in individual_override_subtree.entity.components.keys() {
-                    if let Some(component_data) = blueprint
-                        .store()
-                        .latest_at(
-                            blueprint_query,
-                            &individual_override_path,
-                            *component,
-                            &[*component],
-                        )
-                        .and_then(|(_, _, cells)| cells[0].clone())
-                    {
-                        if !component_data.is_empty() {
-                            resolved_component_overrides.insert(
-                                *component,
-                                OverridePath::blueprint_path(individual_override_path.clone()),
-                            );
-                        }
-                    }
+                    // TODO
+                    // if let Some(component_data) = blueprint
+                    //     .store()
+                    //     .latest_at(
+                    //         blueprint_query,
+                    //         &individual_override_path,
+                    //         *component,
+                    //         &[*component],
+                    //     )
+                    //     .and_then(|(_, _, cells)| cells[0].clone())
+                    // {
+                    //     if !component_data.is_empty() {
+                    //         resolved_component_overrides.insert(
+                    //             *component,
+                    //             OverridePath::blueprint_path(individual_override_path.clone()),
+                    //         );
+                    //     }
+                    // }
                 }
             }
 
@@ -646,7 +648,7 @@ impl DataQueryPropertyResolver<'_> {
 #[cfg(test)]
 mod tests {
     use re_entity_db::EntityDb;
-    use re_log_types::{example_components::MyPoint, DataRow, RowId, StoreId, TimePoint, Timeline};
+    use re_log_types::{example_components::MyPoint, RowId, StoreId, TimePoint, Timeline};
     use re_viewer_context::{StoreContext, StoreHub, VisualizableEntities};
 
     use super::*;
