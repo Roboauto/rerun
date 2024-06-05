@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"trait":["UiExt"]};
+window.SIDEBAR_ITEMS = {"static":["FULL_SPAN_TAG"],"trait":["UiExt"]};

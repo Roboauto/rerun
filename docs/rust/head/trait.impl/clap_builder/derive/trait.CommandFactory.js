@@ -7,7 +7,7 @@
 "objectron":[["impl CommandFactory for <a class=\"struct\" href=\"objectron/struct.Args.html\" title=\"struct objectron::Args\">Args</a>"]],
 "plot_dashboard_stress":[["impl CommandFactory for <a class=\"struct\" href=\"plot_dashboard_stress/struct.Args.html\" title=\"struct plot_dashboard_stress::Args\">Args</a>"]],
 "raw_mesh":[["impl CommandFactory for <a class=\"struct\" href=\"raw_mesh/struct.Args.html\" title=\"struct raw_mesh::Args\">Args</a>"]],
-"rerun":[["impl CommandFactory for <a class=\"struct\" href=\"rerun/run/struct.PrintCommand.html\" title=\"struct rerun::run::PrintCommand\">PrintCommand</a>"],["impl CommandFactory for <a class=\"struct\" href=\"rerun/run/struct.Args.html\" title=\"struct rerun::run::Args\">Args</a>"]],
+"rerun":[["impl CommandFactory for <a class=\"struct\" href=\"rerun/run/struct.Args.html\" title=\"struct rerun::run::Args\">Args</a>"],["impl CommandFactory for <a class=\"struct\" href=\"rerun/run/struct.PrintCommand.html\" title=\"struct rerun::run::PrintCommand\">PrintCommand</a>"]],
 "roundtrip_annotation_context":[["impl CommandFactory for <a class=\"struct\" href=\"roundtrip_annotation_context/struct.Args.html\" title=\"struct roundtrip_annotation_context::Args\">Args</a>"]],
 "roundtrip_arrows2d":[["impl CommandFactory for <a class=\"struct\" href=\"roundtrip_arrows2d/struct.Args.html\" title=\"struct roundtrip_arrows2d::Args\">Args</a>"]],
 "roundtrip_arrows3d":[["impl CommandFactory for <a class=\"struct\" href=\"roundtrip_arrows3d/struct.Args.html\" title=\"struct roundtrip_arrows3d::Args\">Args</a>"]],

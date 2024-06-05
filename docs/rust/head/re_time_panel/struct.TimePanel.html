@@ -13,7 +13,7 @@
 </div><span id="structfield.time_ranges_ui" class="structfield section-header"><a href="#structfield.time_ranges_ui" class="anchor field">§</a><code>time_ranges_ui: <a class="struct" href="time_ranges_ui/struct.TimeRangesUi.html" title="struct re_time_panel::time_ranges_ui::TimeRangesUi">TimeRangesUi</a></code></span><div class="docblock"><p>The time axis view, regenerated each frame.</p>
 </div><span id="structfield.time_control_ui" class="structfield section-header"><a href="#structfield.time_control_ui" class="anchor field">§</a><code>time_control_ui: <a class="struct" href="time_control_ui/struct.TimeControlUi.html" title="struct re_time_panel::time_control_ui::TimeControlUi">TimeControlUi</a></code></span><div class="docblock"><p>Ui elements for controlling time.</p>
 </div><span id="structfield.source" class="structfield section-header"><a href="#structfield.source" class="anchor field">§</a><code>source: <a class="enum" href="enum.TimePanelSource.html" title="enum re_time_panel::TimePanelSource">TimePanelSource</a></code></span><div class="docblock"><p>Which source is the time panel controlling</p>
-</div><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-TimePanel" class="impl"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#133-946">source</a><a href="#impl-TimePanel" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.TimePanel.html" title="struct re_time_panel::TimePanel">TimePanel</a></h3></section></summary><div class="impl-items"><section id="method.new_blueprint_panel" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#134-139">source</a><h4 class="code-header">pub fn <a href="#method.new_blueprint_panel" class="fn">new_blueprint_panel</a>() -&gt; Self</h4></section><section id="method.show_panel" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#141-259">source</a><h4 class="code-header">pub fn <a href="#method.show_panel" class="fn">show_panel</a>(
+</div><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-TimePanel" class="impl"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#133-941">source</a><a href="#impl-TimePanel" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.TimePanel.html" title="struct re_time_panel::TimePanel">TimePanel</a></h3></section></summary><div class="impl-items"><section id="method.new_blueprint_panel" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#134-139">source</a><h4 class="code-header">pub fn <a href="#method.new_blueprint_panel" class="fn">new_blueprint_panel</a>() -&gt; Self</h4></section><section id="method.show_panel" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#141-259">source</a><h4 class="code-header">pub fn <a href="#method.show_panel" class="fn">show_panel</a>(
     &amp;mut self,
     ctx: &amp;<a class="struct" href="../re_viewer_context/viewer_context/struct.ViewerContext.html" title="struct re_viewer_context::viewer_context::ViewerContext">ViewerContext</a>&lt;'_&gt;,
     viewport_blueprint: &amp;<a class="struct" href="../re_viewport_blueprint/viewport_blueprint/struct.ViewportBlueprint.html" title="struct re_viewport_blueprint::viewport_blueprint::ViewportBlueprint">ViewportBlueprint</a>,
@@ -27,14 +27,14 @@
     entity_db: &amp;<a class="struct" href="../re_entity_db/entity_db/struct.EntityDb.html" title="struct re_entity_db::entity_db::EntityDb">EntityDb</a>,
     ui: &amp;mut Ui,
     time_ctrl: &amp;mut <a class="struct" href="../re_viewer_context/time_control/struct.TimeControl.html" title="struct re_viewer_context::time_control::TimeControl">TimeControl</a>
-)</h4></section><section id="method.expanded_ui" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#312-500">source</a><h4 class="code-header">pub(crate) fn <a href="#method.expanded_ui" class="fn">expanded_ui</a>(
+)</h4></section><section id="method.expanded_ui" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#312-495">source</a><h4 class="code-header">pub(crate) fn <a href="#method.expanded_ui" class="fn">expanded_ui</a>(
     &amp;mut self,
     ctx: &amp;<a class="struct" href="../re_viewer_context/viewer_context/struct.ViewerContext.html" title="struct re_viewer_context::viewer_context::ViewerContext">ViewerContext</a>&lt;'_&gt;,
     viewport_blueprint: &amp;<a class="struct" href="../re_viewport_blueprint/viewport_blueprint/struct.ViewportBlueprint.html" title="struct re_viewport_blueprint::viewport_blueprint::ViewportBlueprint">ViewportBlueprint</a>,
     entity_db: &amp;<a class="struct" href="../re_entity_db/entity_db/struct.EntityDb.html" title="struct re_entity_db::entity_db::EntityDb">EntityDb</a>,
     ui: &amp;mut Ui,
     time_ctrl: &amp;mut <a class="struct" href="../re_viewer_context/time_control/struct.TimeControl.html" title="struct re_viewer_context::time_control::TimeControl">TimeControl</a>
-)</h4></section><section id="method.tree_ui" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#504-558">source</a><h4 class="code-header">pub(crate) fn <a href="#method.tree_ui" class="fn">tree_ui</a>(
+)</h4></section><section id="method.tree_ui" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#499-553">source</a><h4 class="code-header">pub(crate) fn <a href="#method.tree_ui" class="fn">tree_ui</a>(
     &amp;mut self,
     ctx: &amp;<a class="struct" href="../re_viewer_context/viewer_context/struct.ViewerContext.html" title="struct re_viewer_context::viewer_context::ViewerContext">ViewerContext</a>&lt;'_&gt;,
     viewport_blueprint: &amp;<a class="struct" href="../re_viewport_blueprint/viewport_blueprint/struct.ViewportBlueprint.html" title="struct re_viewport_blueprint::viewport_blueprint::ViewportBlueprint">ViewportBlueprint</a>,
@@ -43,7 +43,7 @@
     time_area_response: &amp;Response,
     time_area_painter: &amp;Painter,
     ui: &amp;mut Ui
-)</h4></section><section id="method.show_tree" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#561-722">source</a><h4 class="code-header">pub(crate) fn <a href="#method.show_tree" class="fn">show_tree</a>(
+)</h4></section><section id="method.show_tree" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#556-717">source</a><h4 class="code-header">pub(crate) fn <a href="#method.show_tree" class="fn">show_tree</a>(
     &amp;mut self,
     ctx: &amp;<a class="struct" href="../re_viewer_context/viewer_context/struct.ViewerContext.html" title="struct re_viewer_context::viewer_context::ViewerContext">ViewerContext</a>&lt;'_&gt;,
     viewport_blueprint: &amp;<a class="struct" href="../re_viewport_blueprint/viewport_blueprint/struct.ViewportBlueprint.html" title="struct re_viewport_blueprint::viewport_blueprint::ViewportBlueprint">ViewportBlueprint</a>,
@@ -55,7 +55,7 @@
     tree: &amp;<a class="struct" href="../re_entity_db/entity_tree/struct.EntityTree.html" title="struct re_entity_db::entity_tree::EntityTree">EntityTree</a>,
     ui: &amp;mut Ui,
     show_root_as: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.str.html">str</a>
-)</h4></section><section id="method.show_children" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#725-886">source</a><h4 class="code-header">pub(crate) fn <a href="#method.show_children" class="fn">show_children</a>(
+)</h4></section><section id="method.show_children" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#720-881">source</a><h4 class="code-header">pub(crate) fn <a href="#method.show_children" class="fn">show_children</a>(
     &amp;mut self,
     ctx: &amp;<a class="struct" href="../re_viewer_context/viewer_context/struct.ViewerContext.html" title="struct re_viewer_context::viewer_context::ViewerContext">ViewerContext</a>&lt;'_&gt;,
     viewport_blueprint: &amp;<a class="struct" href="../re_viewport_blueprint/viewport_blueprint/struct.ViewportBlueprint.html" title="struct re_viewport_blueprint::viewport_blueprint::ViewportBlueprint">ViewportBlueprint</a>,
@@ -65,7 +65,7 @@
     time_area_painter: &amp;Painter,
     tree: &amp;<a class="struct" href="../re_entity_db/entity_tree/struct.EntityTree.html" title="struct re_entity_db::entity_tree::EntityTree">EntityTree</a>,
     ui: &amp;mut Ui
-)</h4></section><section id="method.top_row_ui" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#888-945">source</a><h4 class="code-header">pub(crate) fn <a href="#method.top_row_ui" class="fn">top_row_ui</a>(
+)</h4></section><section id="method.top_row_ui" class="method"><a class="src rightside" href="../src/re_time_panel/lib.rs.html#883-940">source</a><h4 class="code-header">pub(crate) fn <a href="#method.top_row_ui" class="fn">top_row_ui</a>(
     &amp;mut self,
     ctx: &amp;<a class="struct" href="../re_viewer_context/viewer_context/struct.ViewerContext.html" title="struct re_viewer_context::viewer_context::ViewerContext">ViewerContext</a>&lt;'_&gt;,
     entity_db: &amp;<a class="struct" href="../re_entity_db/entity_db/struct.EntityDb.html" title="struct re_entity_db::entity_db::EntityDb">EntityDb</a>,

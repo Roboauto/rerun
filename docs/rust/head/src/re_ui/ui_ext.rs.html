@@ -1032,6 +1032,32 @@
 <a href="#1031" id="1031">1031</a>
 <a href="#1032" id="1032">1032</a>
 <a href="#1033" id="1033">1033</a>
+<a href="#1034" id="1034">1034</a>
+<a href="#1035" id="1035">1035</a>
+<a href="#1036" id="1036">1036</a>
+<a href="#1037" id="1037">1037</a>
+<a href="#1038" id="1038">1038</a>
+<a href="#1039" id="1039">1039</a>
+<a href="#1040" id="1040">1040</a>
+<a href="#1041" id="1041">1041</a>
+<a href="#1042" id="1042">1042</a>
+<a href="#1043" id="1043">1043</a>
+<a href="#1044" id="1044">1044</a>
+<a href="#1045" id="1045">1045</a>
+<a href="#1046" id="1046">1046</a>
+<a href="#1047" id="1047">1047</a>
+<a href="#1048" id="1048">1048</a>
+<a href="#1049" id="1049">1049</a>
+<a href="#1050" id="1050">1050</a>
+<a href="#1051" id="1051">1051</a>
+<a href="#1052" id="1052">1052</a>
+<a href="#1053" id="1053">1053</a>
+<a href="#1054" id="1054">1054</a>
+<a href="#1055" id="1055">1055</a>
+<a href="#1056" id="1056">1056</a>
+<a href="#1057" id="1057">1057</a>
+<a href="#1058" id="1058">1058</a>
+<a href="#1059" id="1059">1059</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::hash::Hash;
 
 <span class="kw">use </span>egui::{
@@ -1044,6 +1070,8 @@
     list_item::{LabelContent, ListItem},
     ContextExt, DesignTokens, Icon, LabelStyle,
 };
+
+<span class="kw">static </span>FULL_SPAN_TAG: <span class="kw-2">&amp;</span>str = <span class="string">"rerun_full_span"</span>;
 
 <span class="doccomment">/// Rerun custom extensions to [`egui::Ui`].
 </span><span class="kw">pub trait </span>UiExt {
@@ -2037,15 +2065,39 @@
             });
     }
 
+    <span class="doccomment">/// Use the provided range as full span for the nested content.
+    ///
+    /// See [`Self::full_span`] for details.
+    </span><span class="kw">fn </span>full_span_scope&lt;R&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        span: <span class="kw">impl </span>Into&lt;egui::Rangef&gt;,
+        content: <span class="kw">impl </span>FnOnce(<span class="kw-2">&amp;mut </span>egui::Ui) -&gt; R,
+    ) -&gt; R {
+        <span class="self">self</span>.ui_mut()
+            .push_stack_info(
+                egui::UiStackInfo::default().with_tag_value(FULL_SPAN_TAG, span.into()),
+                content,
+            )
+            .inner
+    }
+
     <span class="doccomment">/// Retrieve the current full-span scope.
+    ///
+    /// By default, this method uses a heuristics to identify which parent `Ui`'s boundary should be
+    /// used (e.g. top-level panel, tooltip, etc.). Use [`Self::full_span_scope`] to set a specific
+    /// range as full span.
     </span><span class="kw">fn </span>full_span(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; egui::Rangef {
         <span class="kw">for </span>node <span class="kw">in </span><span class="self">self</span>.ui().stack().iter() {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(span) = node.tags().get_downcast(FULL_SPAN_TAG) {
+                <span class="kw">return </span><span class="kw-2">*</span>span;
+            }
+
             <span class="kw">if </span>node.has_visible_frame()
                 || node.is_panel_ui()
                 || node.is_root_ui()
-                || node.kind == <span class="prelude-val">Some</span>(egui::UiKind::TableCell)
+                || node.kind() == <span class="prelude-val">Some</span>(egui::UiKind::TableCell)
             {
-                <span class="kw">return </span>(node.max_rect + node.frame.inner_margin).x_range();
+                <span class="kw">return </span>(node.max_rect + node.frame().inner_margin).x_range();
             }
         }
 
