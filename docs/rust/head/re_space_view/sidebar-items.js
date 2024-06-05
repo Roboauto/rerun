@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["HybridResults","ScreenshotMode"],"fn":["diff_component_filter","latest_at_with_overrides","range_with_overrides","suggest_space_view_for_each_entity","view_property_ui"],"mod":["controls","external","heuristics","query","results_ext","screenshot","view_property_ui"],"trait":["RangeResultsExt"]};
