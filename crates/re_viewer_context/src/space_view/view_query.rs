@@ -424,17 +424,15 @@ impl DataResult {
     /// Get the typed fallback for a specific component.
     pub fn typed_fallback_for<C: re_types::Component + Default>(
         &self,
-        ctx: &ViewerContext<'_>,
+        view_ctx: &ViewContext<'_>,
         fallback_provider: &dyn ComponentFallbackProvider,
         archetype_name: Option<ArchetypeName>,
-        view_state: &dyn crate::SpaceViewState,
     ) -> Option<C> {
         let query_context = QueryContext {
-            viewer_ctx: ctx,
+            view_ctx,
             target_entity_path: &self.entity_path,
             archetype_name,
-            query: &ctx.current_query(),
-            view_state,
+            query: &view_ctx.current_query(),
         };
 
         C::from_arrow(
